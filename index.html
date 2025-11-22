@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Autonomous EV Project – Teodor Todorov</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+        content="Autonomous Electric Vehicle project by Teodor Todorov – integrating PWM motor control, ultrasonic sensing, line-following optics, servo platform design and RF communications." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #050816;
+      --bg-alt: #0b1020;
+      --card-bg: #111827;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59,130,246,0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --shadow-soft: 0 18px 45px rgba(15,23,42,0.9);
+    }
+
+    * {
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 55%, #000 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Layout */
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: linear-gradient(to bottom, rgba(3,7,18,0.9), rgba(3,7,18,0.75), transparent);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 0;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .logo-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #ffffff, var(--accent));
+      box-shadow: 0 0 25px rgba(59,130,246,0.6);
+    }
+
+    .nav-title {
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.2rem;
+      font-size: 0.9rem;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      padding: 0.15rem 0;
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    main {
+      padding-top: 1.2rem;
+    }
+
+    section {
+      padding: 3rem 0 0;
+    }
+
+    section:first-of-type {
+      padding-top: 2rem;
+    }
+
+    .section-heading {
+      font-weight: 700;
+      font-size: 1.7rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      max-width: 520px;
+    }
+
+    /* Hero */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 2.5rem;
+      align-items: center;
+      padding: 2rem 0 0.5rem;
+    }
+
+    .hero-kicker {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.6rem;
+    }
+
+    .hero-title {
+      font-size: clamp(2.1rem, 3vw, 2.7rem);
+      line-height: 1.15;
+      font-weight: 700;
+      margin: 0 0 0.8rem;
+    }
+
+    .hero-highlight {
+      color: var(--accent);
+    }
+
+    .hero-text {
+      font-size: 0.98rem;
+      color: var(--muted);
+      max-width: 520px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      margin-top: 1.4rem;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      box-shadow: 0 12px 30px rgba(37,99,235,0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: #1f2937;
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      margin-top: 1.9rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .hero-meta span {
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(55,65,81,0.7);
+    }
+
+    .hero-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, #1f2937, #020617);
+      border: 1px solid rgba(55,65,81,0.85);
+      padding: 1.4rem 1.3rem 1.5rem;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-chip {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: var(--accent-soft);
+      color: #bfdbfe;
+      border: 1px solid rgba(59,130,246,0.4);
+    }
+
+    .hero-card h2 {
+      font-size: 1rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .metric {
+      padding: 0.6rem 0.7rem;
+      background: rgba(15,23,42,0.95);
+      border-radius: 12px;
+      border: 1px solid rgba(55,65,81,0.9);
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .metric-value {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 0.1rem;
+    }
+
+    .metric-caption {
+      font-size: 0.7rem;
+      color: #6b7280;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 1rem;
+    }
+
+    .hero-tags span {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(55,65,81,0.7);
+      color: #9ca3af;
+    }
+
+    /* Cards & grids */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.4rem;
+      margin-top: 1.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.4rem;
+      margin-top: 1.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1.1rem 1.2rem;
+      border: 1px solid var(--border);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.6rem;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid #1f2937;
+      color: #9ca3af;
+    }
+
+    /* Timeline */
+    .timeline {
+      margin-top: 1.5rem;
+      border-left: 2px solid rgba(55,65,81,0.9);
+      padding-left: 1.2rem;
+    }
+
+    .timeline-item {
+      margin-bottom: 1.1rem;
+      position: relative;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -1.5rem;
+      top: 0.15rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.3);
+    }
+
+    .timeline-period {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .timeline-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .timeline-desc {
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    /* Lists */
+    .two-column-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem 2rem;
+      margin-top: 0.8rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .two-column-list li {
+      list-style: none;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    .two-column-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    ul.compact {
+      margin: 0.6rem 0 0;
+      padding-left: 1.1rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.4rem;
+      border-top: 1px solid #111827;
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .hero-card {
+        order: -1;
+      }
+      .grid-3 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .grid-2 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .two-column-list {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="page nav">
+    <div class="nav-left">
+      <div class="logo-dot"></div>
+      <div class="nav-title">Autonomous EV · EN1217</div>
+    </div>
+    <nav class="nav-links">
+      <a href="#about">About</a>
+      <a href="#architecture">Systems</a>
+      <a href="#subsystems">Subsystems</a>
+      <a href="#data">Data</a>
+      <a href="#skills">Skills</a>
+      <a href="#timeline">Timeline</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <!-- Hero -->
+  <section id="top" class="hero">
+    <div>
+      <div class="hero-kicker">Teodor Todorov · Cardiff University</div>
+      <h1 class="hero-title">
+        Autonomous <span class="hero-highlight">Electric Vehicle</span><br />
+        for Line-Following & Obstacle Avoidance
+      </h1>
+      <p class="hero-text">
+        A year-long engineering project integrating motor control, sensor fusion and embedded
+        software to build a self-driving model EV. The car follows a dedicated lane, reacts to
+        obstacles and demonstrates concepts relevant to autonomous public transport systems.
+      </p>
+      <div class="hero-actions">
+        <a href="#architecture" class="btn btn-primary">Explore the System</a>
+        <a href="#skills" class="btn btn-outline">View Skills & Tools</a>
+      </div>
+      <div class="hero-meta">
+        <span>EN1217 Applied Design · 2024–2025</span>
+        <span>3-person multidisciplinary team</span>
+        <span>Focus: control, sensing, data analysis</span>
+      </div>
+    </div>
+
+    <aside class="hero-card" aria-label="Key performance metrics">
+      <div class="hero-chip">Key Metrics</div>
+      <h2>Performance Snapshot</h2>
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-label">Ultrasonic Accuracy</div>
+          <div class="metric-value">r = 0.9997</div>
+          <div class="metric-caption">Measured vs. calculated distance</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Motor Consistency</div>
+          <div class="metric-value">0.2% CV</div>
+          <div class="metric-caption">Power variance @100% PWM</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Reaction Time</div>
+          <div class="metric-value">0.79 s</div>
+          <div class="metric-caption">Obstacle detection @ 75% duty</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Sensors</div>
+          <div class="metric-value">4+</div>
+          <div class="metric-caption">Ultrasonic, optical, RF, encoders</div>
+        </div>
+      </div>
+      <div class="hero-tags">
+        <span>PWM Motor Control</span>
+        <span>Ultrasonic TOF Sensing</span>
+        <span>Phototransistors</span>
+        <span>SolidWorks + 3D Print</span>
+        <span>MicroPython</span>
+      </div>
+    </aside>
+  </section>
+
+  <!-- About -->
+  <section id="about">
+    <h2 class="section-heading">Project Overview</h2>
+    <p class="section-subtitle">
+      The project aimed to build a model autonomous EV capable of driving forward, reversing,
+      turning and stopping based on its surroundings. The platform demonstrates how sensing,
+      control and actuation can come together to support future autonomous public transport.
+    </p>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>Aims</h3>
+        <p>
+          We defined three main goals:
+        </p>
+        <ul class="compact">
+          <li>Robust line following using a dedicated lane.</li>
+          <li>Smooth, predictable manoeuvres using PWM-controlled DC motors.</li>
+          <li>Automatic braking when obstacles are detected ahead.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Context</h3>
+        <p>
+          Autonomous EVs can reduce congestion, improve safety and support climate targets
+          by enabling cleaner, more efficient transport. Our scaled prototype mirrors the
+          core subsystems of real self-driving shuttles and buses.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>My Focus</h3>
+        <p>
+          I focused on motor characterisation, ultrasonic sensing, line-following behaviour
+          analysis and documentation – using data-driven methods (ANOVA, Pearson correlation,
+          curve fitting) to validate and tune system performance.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture">
+    <h2 class="section-heading">System Architecture</h2>
+    <p class="section-subtitle">
+      The EV is built around a microcontroller-driven architecture that coordinates sensing,
+      decision-making and actuation. Below is a high-level view of the main layers.
+    </p>
+
+    <div class="grid-4 grid-3">
+      <div class="card">
+        <h3>Control Layer</h3>
+        <p>
+          A BBC Micro:bit runs MicroPython firmware to handle sensor polling, PWM generation
+          and decision logic. The controller communicates with the motor drivers and reacts
+          in real time to the EV’s environment.
+        </p>
+        <div class="pill-row">
+          <span class="pill">MicroPython</span>
+          <span class="pill">Event-driven logic</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Sensing Layer</h3>
+        <p>
+          An ultrasonic sensor provides distance measurements, while a dual phototransistor
+          array underneath the chassis detects the black line. RF measurements were also
+          taken using the Micro:bit radio for time & frequency-domain analysis.
+        </p>
+        <div class="pill-row">
+          <span class="pill">Ultrasonic TOF</span>
+          <span class="pill">Optical contrast</span>
+          <span class="pill">2.4 GHz RF</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Actuation Layer</h3>
+        <p>
+          Four DC motors driven by a dual H-bridge (DRV8833) provide propulsion and steering
+          through differential speeds. A continuous-rotation servo sweeps the ultrasonic sensor
+          to widen the field of view.
+        </p>
+        <div class="pill-row">
+          <span class="pill">H-bridge driver</span>
+          <span class="pill">Duty-cycle control</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Mechanical & Mounting</h3>
+        <p>
+          A custom 3D-printed SolidWorks bracket secures the ultrasonic sensor to the servo,
+          designed with ±0.5 mm tolerances to account for fabrication and component tolerances.
+        </p>
+        <div class="pill-row">
+          <span class="pill">SolidWorks</span>
+          <span class="pill">BCN3D Epsilon</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Subsystems -->
+  <section id="subsystems">
+    <h2 class="section-heading">Subsystems in Detail</h2>
+    <p class="section-subtitle">
+      Each subsystem was tested individually and then integrated into the final vehicle.
+      Below are highlights from the most important components.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>DC Motors & PWM Control</h3>
+        <p>
+          We characterised four identical DC motors across duty cycles from 20–100% using
+          a bench supply, multimeter and oscilloscope. A one-way ANOVA showed significant
+          differences between motor positions, revealing that the rear motors drew slightly
+          more power due to additional load from the controller and robotics board.
+        </p>
+        <ul class="compact">
+          <li>Duty-cycle range: 20–100%.</li>
+          <li>Power variability highest at 20% (CV = 12.3%).</li>
+          <li>Near-perfect alignment at full load (CV = 0.2%).</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Ultrasonic Distance Sensing</h3>
+        <p>
+          The ultrasonic sensor was tested at known distances and the echo pulse width was
+          monitored on an oscilloscope. Using the speed of sound, measured pulse widths were
+          converted into calculated distances and compared against ground truth.
+        </p>
+        <ul class="compact">
+          <li>Correlation between measured and calculated distance: <b>r = 0.99972</b>.</li>
+          <li>Reliable detection over the operating range used by the EV.</li>
+          <li>Additional tests with different materials to assess surface dependency.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Line-Following Optical System</h3>
+        <p>
+          A dual phototransistor board underneath the chassis distinguishes between black
+          tape and lighter surfaces. Analogue readings are converted into a left–right
+          intensity difference which directly maps to steering commands.
+        </p>
+        <p>
+          A cubic polynomial fit was used to model the relationship between lateral
+          displacement and sensor difference, and the derivative of this function provided
+          a measure of turning sensitivity at various positions.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Servo Platform & Mechanical Design</h3>
+        <p>
+          The ultrasonic sensor is mounted on a continuous-rotation servo to scan the
+          environment. I used a micrometre to measure transducer spacing, PCB length and
+          servo horn hole diameters, then designed a bracket with carefully chosen
+          tolerances for a secure but non-binding fit.
+        </p>
+        <ul class="compact">
+          <li>Material: PLA via BCN3D Epsilon W27.</li>
+          <li>Orientation optimised for strength along the print direction.</li>
+          <li>Post-processing with a curved file to fine-tune screw-hole diameters.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Servo Characterisation</h3>
+        <p>
+          The servo’s current draw was recorded at 60°, 90°, 120°, 150° and 180°.
+          Results showed a strong positive correlation between angle and current with
+          an almost linear power increase under constant 4.8 V supply.
+        </p>
+        <ul class="compact">
+          <li>Correlation (angle vs current): <b>r ≈ 0.993</b>.</li>
+          <li>Power from 0.60 W (60°) to 0.77 W (180°).</li>
+          <li>Non-linear rise at large angles hints at higher torque demands.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>RF Communication Analysis</h3>
+        <p>
+          The Micro:bit’s 2.4 GHz radio was examined both in the time domain using a
+          diode detector and oscilloscope, and in the frequency domain using a spectrum
+          analyser. This validated transmission timing, bandwidth and centre frequency.
+        </p>
+        <ul class="compact">
+          <li>Centre frequency around 2.407 GHz.</li>
+          <li>Approx. 1 MHz bandwidth, narrowband behaviour.</li>
+          <li>Signal strength from –40 dBm to –70 dBm depending on setup.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data & Results -->
+  <section id="data">
+    <h2 class="section-heading">Data-Driven Results</h2>
+    <p class="section-subtitle">
+      Quantitative analysis played a key role in validating each subsystem and tuning the EV’s
+      overall behaviour.
+    </p>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>Statistical Analysis</h3>
+        <p>
+          A one-way ANOVA was used to study power consumption differences between motor
+          positions. The F-test indicated that at least one motor behaved differently, guiding
+          our understanding of load distribution and informing control tuning.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Stopping Distance & Reaction Time</h3>
+        <p>
+          Reaction time and stopping distance were measured for varying duty cycles and
+          threshold distances. As duty cycle increased, reaction time decreased, confirming
+          the system’s ability to adapt to speed while maintaining collision avoidance.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Line-Following Behaviour</h3>
+        <p>
+          The cubic model of sensor difference versus lateral position allowed us to reason
+          about stability. The derivative revealed weak response near the centre line but
+          stronger corrective action at larger deviations, reflecting a “soft” control law
+          around the desired path.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Skills -->
+  <section id="skills">
+    <h2 class="section-heading">Skills & Tools Demonstrated</h2>
+    <p class="section-subtitle">
+      This project directly strengthened both my technical toolkit and my ability to
+      communicate complex work clearly.
+    </p>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>Technical</h3>
+        <ul class="compact">
+          <li>PWM motor control & H-bridge drivers.</li>
+          <li>Sensor integration (ultrasonic, optical, RF).</li>
+          <li>Embedded programming in MicroPython.</li>
+          <li>Oscilloscope & spectrum analyser use.</li>
+          <li>Data analysis (ANOVA, Pearson, curve fitting).</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Tools</h3>
+        <ul class="compact">
+          <li>BBC Micro:bit & Kitronik Robotics Board.</li>
+          <li>SolidWorks + BCN3D Cura (3D printing).</li>
+          <li>Bench power supply, multimeter, RF lab equipment.</li>
+          <li>Python for analysis and plotting.</li>
+          <li>Office tools for professional reporting.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Professional</h3>
+        <ul class="compact">
+          <li>Working effectively in a 3-person team.</li>
+          <li>Documenting experiments and results clearly.</li>
+          <li>Balancing accuracy with time pressure.</li>
+          <li>Presenting technical content to non-specialists.</li>
+          <li>Planning work with Gantt charts and milestones.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <section id="timeline">
+    <h2 class="section-heading">Project Timeline</h2>
+    <p class="section-subtitle">
+      The work was spread across the academic year, combining weekly lab sessions with
+      independent development and analysis.
+    </p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-period">Weeks 1–6</div>
+        <div class="timeline-title">Foundations & Component Testing</div>
+        <p class="timeline-desc">
+          Initial familiarisation with Micro:bit and robotics board, basic DC motor tests,
+          early experiments with sensors and environment setup.
+        </p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-period">Weeks 7–12</div>
+        <div class="timeline-title">Subsystem Development & Interim Demo</div>
+        <p class="timeline-desc">
+          Integration of ultrasonic sensor and DC motors, initial line-following behaviour,
+          and submission of a progress video demonstrating partial functionality.
+        </p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-period">Weeks 13–20</div>
+        <div class="timeline-title">Full Integration & Performance Tuning</div>
+        <p class="timeline-desc">
+          Fine-tuning PWM parameters, improving turn stability, validating stopping distance
+          at multiple speeds, and iterating on mechanical design.
+        </p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-period">Weeks 21–End</div>
+        <div class="timeline-title">Data Analysis & Final Report</div>
+        <p class="timeline-desc">
+          Performing formal statistical analysis, generating plots, interpreting results and
+          compiling the final technical report and presentation.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Designed & built by Teodor Todorov · Autonomous EV Project · Cardiff University<br/>
+    This page summarises selected content from the EN1217 Applied Design group project.
+  </footer>
+</main>
+</body>
+</html>
